@@ -47,8 +47,14 @@ func (s Service) GetImageUrls() (errorList apierror.ErrorList) {
 	}
 
 	for s.queue.head != nil {
-		if err := s.queue.head.action.a(); err != nil {
+		err := s.queue.head.action.a()
+
+		if err != nil {
 			errorList.List = append(errorList.List, wrapErr(err))
+		}
+
+		if ae, ok := err.(apierror.ApiError); ok && ae.Code == apierror.ScrapingError {
+			return errorList
 		}
 
 		s.queue.head = s.queue.head.next
@@ -89,5 +95,5 @@ func wrapErr(err error) apierror.ApiError {
 		return ae
 	}
 
-	return apierror.ApiError{}
+	return apierror.ApiError{Code: apierror.DefaultError, InnerCause: err}
 }

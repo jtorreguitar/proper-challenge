@@ -11,8 +11,7 @@ import (
 func CreateDir(path string) error {
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		if err := os.Mkdir(path, os.ModePerm); err != nil {
-			// TODO: create more verbose error
-			return err
+			return apierror.ApiError{Code: apierror.CreateDirError, InnerCause: err}
 		}
 	}
 	return nil
@@ -20,7 +19,7 @@ func CreateDir(path string) error {
 
 func WriteFile(name string, content []byte) error {
 	if err := ioutil.WriteFile(name, content, 0666); err != nil {
-		return apierror.ApiError{}
+		return apierror.ApiError{Code: apierror.WriteFileError, InnerCause: err}
 	}
 
 	return nil

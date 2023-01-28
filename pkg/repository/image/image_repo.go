@@ -10,10 +10,10 @@ import (
 func GetImage(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, apierror.ApiError{}
+		return nil, apierror.ApiError{Code: apierror.GetImageError, InnerCause: err}
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
-	return data, err
+	return data, apierror.ApiError{Code: apierror.ReadImageError, InnerCause: err}
 }

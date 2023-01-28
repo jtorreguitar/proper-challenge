@@ -1,6 +1,9 @@
 package requesting
 
-import "github.com/gocolly/colly"
+import (
+	"github.com/gocolly/colly"
+	"github.com/jtorreguitar/proper-challenge/pkg/apierror"
+)
 
 type scrapeAction struct {
 	url       string
@@ -16,6 +19,5 @@ func (action scrapeAction) a() error {
 }
 
 func wrapScrapeErr(err error) error {
-	// TODO: wrap err
-	return err
+	return apierror.ApiError{Code: apierror.ScrapingError, InnerCause: err}
 }
