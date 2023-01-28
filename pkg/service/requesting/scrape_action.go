@@ -15,7 +15,10 @@ func newScrapeAction(url string, collector *colly.Collector) action {
 }
 
 func (action scrapeAction) a() error {
-	return wrapScrapeErr(action.collector.Visit(action.url))
+	if err := action.collector.Visit(action.url); err != nil {
+		wrapScrapeErr(err)
+	}
+	return nil
 }
 
 func wrapScrapeErr(err error) error {
