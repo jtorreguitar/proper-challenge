@@ -5,15 +5,22 @@ import (
 
 	"github.com/gocolly/colly"
 	"github.com/jtorreguitar/proper-challenge/pkg/apierror"
-	"github.com/jtorreguitar/proper-challenge/pkg/service/file"
+	"github.com/jtorreguitar/proper-challenge/pkg/interfaces"
+)
+
+const (
+	Class      = ".mu-content-card.mu-card.mu-flush.mu-z1.js-post"
+	ResultsDir = "results"
 )
 
 type Service struct {
-	collector       *colly.Collector
+	visitor         interfaces.VisitorService
 	baseUrl         string
 	queue           *queue
 	remainingImages *int
 	totalImages     int
+	fileService     interfaces.FileService
+	imageRepo       interfaces.ImageRepository
 }
 
 type queue struct {
@@ -30,18 +37,26 @@ type action interface {
 	a() error
 }
 
-func NewService(collector *colly.Collector, baseUrl string, totalImages int) Service {
+func NewService(
+	visitor interfaces.VisitorService,
+	baseUrl string,
+	totalImages int,
+	fileService interfaces.FileService,
+	imageRepo interfaces.ImageRepository,
+) Service {
 	return Service{
-		collector:       collector,
+		visitor:         visitor,
 		baseUrl:         baseUrl,
-		queue:           &queue{head: &node{action: newScrapeAction(page(baseUrl, 0), collector)}},
+		queue:           &queue{head: &node{action: newScrapeAction(page(baseUrl, 0), visitor)}},
 		remainingImages: &totalImages,
 		totalImages:     totalImages,
+		fileService:     fileService,
+		imageRepo:       imageRepo,
 	}
 }
 
 func (s Service) GetImageUrls() (errorList apierror.ErrorList) {
-	if err := file.CreateDir("results"); err != nil {
+	if err := s.fileService.CreateDir(ResultsDir); err != nil {
 		errorList.List = []apierror.ApiError{wrapErr(err)}
 		return errorList
 	}
@@ -70,7 +85,7 @@ func (s Service) GetImageUrl(e *colly.HTMLElement) {
 
 	url := e.ChildAttr("div a div img", "data-src")
 	if url != "" {
-		s.addAction(newImageAction(url, s.totalImages-*s.remainingImages+1))
+		s.addAction(newImageAction(url, ResultsDir, s.totalImages-*s.remainingImages+1, s.imageRepo, s.fileService))
 		*s.remainingImages--
 	}
 }

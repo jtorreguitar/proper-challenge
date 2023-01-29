@@ -5,11 +5,25 @@ import (
 	"net/http"
 
 	"github.com/jtorreguitar/proper-challenge/pkg/apierror"
+	"github.com/jtorreguitar/proper-challenge/pkg/utils/requester"
 )
 
-func GetImage(url string) ([]byte, error) {
-	resp, err := http.Get(url)
+type Repository struct {
+	requester requester.Requester
+}
+
+func NewRepository(requester requester.Requester) Repository {
+	return Repository{requester: requester}
+}
+
+func (r Repository) GetImage(url string) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
+		return nil, apierror.ApiError{Code: apierror.GenerateImageRequestError, InnerCause: err}
+	}
+
+	resp, err := r.requester.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
 		return nil, apierror.ApiError{Code: apierror.GetImageError, InnerCause: err}
 	}
 

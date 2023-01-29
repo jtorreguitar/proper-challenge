@@ -2,30 +2,64 @@ package logging
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/jtorreguitar/proper-challenge/pkg/apierror"
-	"github.com/jtorreguitar/proper-challenge/pkg/service/file"
+	"github.com/jtorreguitar/proper-challenge/pkg/interfaces"
 )
 
 type Logger struct {
-	output *os.File
+	manager Manager
+	output  *os.File
 }
 
-func Init() (Logger, error) {
-	if err := file.CreateDir("logs"); err != nil {
+type Manager interface {
+	SetOutput(w io.Writer)
+	Print(v ...any)
+}
+
+type manager struct {
+	setOutput func(w io.Writer)
+	print     func(v ...any)
+}
+
+func (m manager) SetOutput(w io.Writer) {
+	m.setOutput(w)
+}
+
+func (m manager) Print(v ...any) {
+	m.print(v)
+}
+
+func NewLogger(fileService interfaces.FileService, manager Manager) (Logger, error) {
+	if err := fileService.CreateDir("logs"); err != nil {
 		return Logger{}, err
 	}
 
-	f, err := file.OpenFile("logs/error_report.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY)
+	f, err := fileService.OpenFile("logs/error_report.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY)
 	if err != nil {
 		return Logger{}, err
 	}
 
-	log.SetOutput(f)
-	return Logger{output: f}, nil
+	manager.SetOutput(f)
+	return Logger{manager: manager, output: f}, nil
+}
+
+func NewDefaultManager() Manager {
+	return manager{
+		setOutput: log.SetOutput,
+		print:     log.Print,
+	}
+}
+
+func NewManager(setOutput func(w io.Writer), print func(v ...any)) Manager {
+	return manager{
+		setOutput: setOutput,
+		print:     print,
+	}
 }
 
 func (logger Logger) Close() {
@@ -34,7 +68,7 @@ func (logger Logger) Close() {
 
 func (logger Logger) GenerateErrorReport(errorList apierror.ErrorList) {
 	for _, err := range errorList.List {
-		log.Print(generateErroString(err))
+		logger.manager.Print(generateErroString(err))
 	}
 }
 
