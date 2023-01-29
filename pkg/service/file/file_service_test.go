@@ -16,40 +16,23 @@ func Test_CreateDir(t *testing.T) {
 	tests := []struct {
 		name        string
 		expectedErr apierror.ApiError
-		stat        func(name string) (fs.FileInfo, error)
 		mkdir       func(name string, perm fs.FileMode) error
 	}{
 		{
 			name: "success",
-			stat: func(name string) (fs.FileInfo, error) {
-				return nil, nil
-			},
 			mkdir: func(name string, perm fs.FileMode) error {
 				return nil
 			},
 		},
 		{
 			name: "success (dir not exists)",
-			stat: func(name string) (fs.FileInfo, error) {
-				return nil, os.ErrNotExist
-			},
 			mkdir: func(name string, perm fs.FileMode) error {
 				return nil
 			},
 		},
 		{
-			name:        "fail (stat)",
-			expectedErr: apierror.ApiError{Code: apierror.StatDirError},
-			stat: func(name string) (fs.FileInfo, error) {
-				return nil, errors.New("hardcoded")
-			},
-		},
-		{
 			name:        "fail (mkdir)",
 			expectedErr: apierror.ApiError{Code: apierror.CreateDirError},
-			stat: func(name string) (fs.FileInfo, error) {
-				return nil, nil
-			},
 			mkdir: func(name string, perm fs.FileMode) error {
 				return errors.New("hardcoded")
 			},
@@ -59,7 +42,6 @@ func Test_CreateDir(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := file.NewService(file.NewManager(
-				tt.stat,
 				tt.mkdir,
 				nil,
 				nil,
@@ -99,7 +81,6 @@ func Test_WriteFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := file.NewService(file.NewManager(
-				nil,
 				nil,
 				tt.writeFile,
 				nil,
@@ -152,7 +133,6 @@ func Test_OpenFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := file.NewService(file.NewManager(
-				nil,
 				nil,
 				nil,
 				tt.truncate,

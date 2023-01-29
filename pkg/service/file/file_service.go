@@ -25,7 +25,6 @@ func NewDefaultService() Service {
 }
 
 type Manager interface {
-	Stat(name string) (fs.FileInfo, error)
 	Mkdir(name string, perm fs.FileMode) error
 	WriteFile(name string, data []byte, perm fs.FileMode) error
 	Truncate(name string, size int64) error
@@ -33,7 +32,6 @@ type Manager interface {
 }
 
 type manager struct {
-	stat      func(name string) (fs.FileInfo, error)
 	mkdir     func(name string, perm fs.FileMode) error
 	writeFile func(name string, data []byte, perm fs.FileMode) error
 	truncate  func(name string, size int64) error
@@ -42,7 +40,6 @@ type manager struct {
 
 func NewDefaultManager() Manager {
 	return manager{
-		stat:      os.Stat,
 		mkdir:     os.Mkdir,
 		writeFile: os.WriteFile,
 		truncate:  os.Truncate,
@@ -51,23 +48,17 @@ func NewDefaultManager() Manager {
 }
 
 func NewManager(
-	stat func(name string) (fs.FileInfo, error),
 	mkdir func(name string, perm fs.FileMode) error,
 	writeFile func(name string, data []byte, perm fs.FileMode) error,
 	truncate func(name string, size int64) error,
 	openFile func(name string, flag int, perm fs.FileMode) (*os.File, error),
 ) Manager {
 	return manager{
-		stat:      stat,
 		mkdir:     mkdir,
 		writeFile: writeFile,
 		truncate:  truncate,
 		openFile:  openFile,
 	}
-}
-
-func (m manager) Stat(name string) (fs.FileInfo, error) {
-	return m.stat(name)
 }
 
 func (m manager) Mkdir(name string, perm fs.FileMode) error {
