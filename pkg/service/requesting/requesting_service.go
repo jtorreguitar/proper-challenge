@@ -74,7 +74,8 @@ func (s Service) GetImageUrls(maxThreads int) (errorList apierror.ErrorList) {
 			}
 
 			if *s.remainingImages > 0 {
-				s.addAction(newScrapeAction(page(s.baseUrl, nextPage(currentPage)), s.collector))
+				currentPage = nextPage(currentPage)
+				s.addAction(newScrapeAction(page(s.baseUrl, currentPage), s.collector))
 			}
 		} else {
 			if currentThreads == maxThreads {
