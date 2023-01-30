@@ -12,10 +12,6 @@ type FileService interface {
 	OpenFile(name string, flag int) (*os.File, error)
 }
 
-type VisitorService interface {
-	Visit(URL string) error
-}
-
 type RequestingService interface {
 	GetImageUrls() (errorList apierror.ErrorList)
 }

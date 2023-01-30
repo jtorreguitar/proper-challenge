@@ -14,7 +14,7 @@ const (
 )
 
 type Service struct {
-	visitor         interfaces.VisitorService
+	collector       *colly.Collector
 	baseUrl         string
 	queue           *queue
 	remainingImages *int
@@ -38,16 +38,16 @@ type action interface {
 }
 
 func NewService(
-	visitor interfaces.VisitorService,
+	collector *colly.Collector,
 	baseUrl string,
 	totalImages int,
 	fileService interfaces.FileService,
 	imageRepo interfaces.ImageRepository,
 ) Service {
 	return Service{
-		visitor:         visitor,
+		collector:       collector,
 		baseUrl:         baseUrl,
-		queue:           &queue{head: &node{action: newScrapeAction(page(baseUrl, 0), visitor)}},
+		queue:           &queue{head: &node{action: newScrapeAction(page(baseUrl, 0), collector)}},
 		remainingImages: &totalImages,
 		totalImages:     totalImages,
 		fileService:     fileService,

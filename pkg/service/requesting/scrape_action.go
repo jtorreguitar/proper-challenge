@@ -1,21 +1,21 @@
 package requesting
 
 import (
+	"github.com/gocolly/colly"
 	"github.com/jtorreguitar/proper-challenge/pkg/apierror"
-	"github.com/jtorreguitar/proper-challenge/pkg/interfaces"
 )
 
 type scrapeAction struct {
-	url     string
-	visitor interfaces.VisitorService
+	url       string
+	collector *colly.Collector
 }
 
-func newScrapeAction(url string, visitor interfaces.VisitorService) action {
-	return scrapeAction{url: url, visitor: visitor}
+func newScrapeAction(url string, collector *colly.Collector) action {
+	return scrapeAction{url: url, collector: collector}
 }
 
 func (action scrapeAction) a() error {
-	if err := action.visitor.Visit(action.url); err != nil {
+	if err := action.collector.Visit(action.url); err != nil {
 		wrapScrapeErr(err)
 	}
 	return nil
