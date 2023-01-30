@@ -34,6 +34,24 @@ func newTestServer() *httptest.Server {
 		)
 	})
 
+	mux.HandleFunc("/page/2", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(`<!DOCTYPE html>
+						<html>
+							<div class="mu-content-card mu-card mu-flush mu-z1 js-post">
+								<div>
+									<a>
+										<div>
+									   		<img data-src="https://i.chzbgr.com/full/9728348928/h80C82339/maybe-shes-born-with-it-maybe-its-meowbelline"> 
+										</div>
+									</a>
+								</div>
+							</div>
+						</html>`,
+		),
+		)
+	})
+
 	return httptest.NewServer(mux)
 }
 
@@ -41,15 +59,16 @@ func Test_GetImageUrls(t *testing.T) {
 	ts := newTestServer()
 	defer ts.Close()
 
-	totalImages := 10
 	tests := []struct {
 		name        string
+		totalImages int
 		expectedErr apierror.ApiError
 		fileService fileServiceMock
 		imageRepo   imageRepoMock
 	}{
 		{
-			name: "success",
+			name:        "success",
+			totalImages: 1,
 			fileService: fileServiceMock{
 				createDir: func(path string) error { return nil },
 				writeFile: func(name string, content []byte) error { return nil },
@@ -58,6 +77,7 @@ func Test_GetImageUrls(t *testing.T) {
 		},
 		{
 			name:        "fail (create dir)",
+			totalImages: 1,
 			expectedErr: apierror.ApiError{Code: apierror.CreateDirError},
 			fileService: fileServiceMock{
 				createDir: func(path string) error { return apierror.ApiError{Code: apierror.CreateDirError} },
@@ -67,6 +87,7 @@ func Test_GetImageUrls(t *testing.T) {
 		},
 		{
 			name:        "fail (write file)",
+			totalImages: 1,
 			expectedErr: apierror.ApiError{Code: apierror.WriteFileError},
 			fileService: fileServiceMock{
 				createDir: func(path string) error { return nil },
@@ -76,6 +97,7 @@ func Test_GetImageUrls(t *testing.T) {
 		},
 		{
 			name:        "fail (get image)",
+			totalImages: 1,
 			expectedErr: apierror.ApiError{Code: apierror.GetImageError},
 			fileService: fileServiceMock{
 				createDir: func(path string) error { return nil },
@@ -83,12 +105,21 @@ func Test_GetImageUrls(t *testing.T) {
 			},
 			imageRepo: func(url string) ([]byte, error) { return nil, apierror.ApiError{Code: apierror.GetImageError} },
 		},
+		{
+			name:        "success (more than one page)",
+			totalImages: 2,
+			fileService: fileServiceMock{
+				createDir: func(path string) error { return nil },
+				writeFile: func(name string, content []byte) error { return nil },
+			},
+			imageRepo: func(url string) ([]byte, error) { return []byte{}, nil },
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := colly.NewCollector()
-			s := requesting.NewService(c, ts.URL, totalImages, tt.fileService, tt.imageRepo)
+			s := requesting.NewService(c, ts.URL, tt.totalImages, tt.fileService, tt.imageRepo)
 			c.OnHTML(requesting.Class, s.GetImageUrl)
 
 			resp := s.GetImageUrls()
@@ -100,16 +131,6 @@ func Test_GetImageUrls(t *testing.T) {
 			}
 		})
 	}
-}
-
-type visitorMock struct {
-	e        *colly.HTMLElement
-	getImage func(e *colly.HTMLElement)
-	visit    func(URL string) error
-}
-
-func (m visitorMock) Visit(URL string) error {
-	return m.visit(URL)
 }
 
 type fileServiceMock struct {
