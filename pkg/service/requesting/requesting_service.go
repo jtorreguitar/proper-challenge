@@ -61,6 +61,7 @@ func (s Service) GetImageUrls() (errorList apierror.ErrorList) {
 		return errorList
 	}
 
+	currentPage := 0
 	for s.queue.head != nil {
 		err := s.queue.head.action.a()
 
@@ -73,6 +74,11 @@ func (s Service) GetImageUrls() (errorList apierror.ErrorList) {
 		}
 
 		s.queue.head = s.queue.head.next
+		if s.queue.head == nil && *s.remainingImages > 0 {
+			currentPage = nextPage(currentPage)
+			s.queue.head = &node{action: newScrapeAction(page(s.baseUrl, currentPage), s.collector)}
+			s.queue.last = nil
+		}
 	}
 
 	return errorList
@@ -111,4 +117,12 @@ func wrapErr(err error) apierror.ApiError {
 	}
 
 	return apierror.ApiError{Code: apierror.DefaultError, InnerCause: err}
+}
+
+func nextPage(current int) int {
+	if current == 0 {
+		return 2
+	}
+
+	return current + 1
 }
