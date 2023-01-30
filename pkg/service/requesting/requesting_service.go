@@ -2,6 +2,7 @@ package requesting
 
 import (
 	"strconv"
+	"sync"
 
 	"github.com/gocolly/colly"
 	"github.com/jtorreguitar/proper-challenge/pkg/apierror"
@@ -55,33 +56,49 @@ func NewService(
 	}
 }
 
-func (s Service) GetImageUrls() (errorList apierror.ErrorList) {
+func (s Service) GetImageUrls(maxThreads int) (errorList apierror.ErrorList) {
 	if err := s.fileService.CreateDir(ResultsDir); err != nil {
 		errorList.List = []apierror.ApiError{wrapErr(err)}
 		return errorList
 	}
 
+	ch := make(chan error, s.totalImages)
+	currentThreads := 0
 	currentPage := 0
+	var wg sync.WaitGroup
 	for s.queue.head != nil {
-		err := s.queue.head.action.a()
+		if _, ok := s.queue.head.action.(scrapeAction); ok {
+			err := s.queue.head.action.a()
+			if err != nil {
+				return apierror.ErrorList{List: []apierror.ApiError{wrapErr(err)}}
+			}
 
-		if err != nil {
-			errorList.List = append(errorList.List, wrapErr(err))
-		}
+			if *s.remainingImages > 0 {
+				s.addAction(newScrapeAction(page(s.baseUrl, nextPage(currentPage)), s.collector))
+			}
+		} else {
+			if currentThreads == maxThreads {
+				continue
+			}
 
-		if ae, ok := err.(apierror.ApiError); ok && ae.Code == apierror.ScrapingError {
-			return errorList
+			currentThreads++
+			wg.Add(1)
+			go func(action action) {
+				defer wg.Done()
+				if err := action.a(); err != nil {
+					ch <- err
+				}
+
+				currentThreads--
+			}(s.queue.head.action)
 		}
 
 		s.queue.head = s.queue.head.next
-		if s.queue.head == nil && *s.remainingImages > 0 {
-			currentPage = nextPage(currentPage)
-			s.queue.head = &node{action: newScrapeAction(page(s.baseUrl, currentPage), s.collector)}
-			s.queue.last = nil
-		}
 	}
 
-	return errorList
+	wg.Wait()
+	close(ch)
+	return generateErrorList(ch)
 }
 
 func (s Service) GetImageUrl(e *colly.HTMLElement) {
@@ -125,4 +142,12 @@ func nextPage(current int) int {
 	}
 
 	return current + 1
+}
+
+func generateErrorList(ch chan error) (errorList apierror.ErrorList) {
+	for err := range ch {
+		errorList.List = append(errorList.List, wrapErr(err))
+	}
+
+	return errorList
 }

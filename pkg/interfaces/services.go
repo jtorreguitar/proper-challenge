@@ -13,5 +13,5 @@ type FileService interface {
 }
 
 type RequestingService interface {
-	GetImageUrls() (errorList apierror.ErrorList)
+	GetImageUrls(threads int) (errorList apierror.ErrorList)
 }

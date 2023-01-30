@@ -122,7 +122,7 @@ func Test_GetImageUrls(t *testing.T) {
 			s := requesting.NewService(c, ts.URL, tt.totalImages, tt.fileService, tt.imageRepo)
 			c.OnHTML(requesting.Class, s.GetImageUrl)
 
-			resp := s.GetImageUrls()
+			resp := s.GetImageUrls(1)
 			if tt.expectedErr.Code != "" {
 				assert.Greater(t, len(resp.List), 0)
 				testutils.CheckError(t, tt.expectedErr, resp.List[0])

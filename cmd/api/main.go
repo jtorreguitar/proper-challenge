@@ -16,9 +16,10 @@ func main() {
 	defer logger.Close()
 
 	totalImages := flag.Int("amount", 10, "amount of images to fetch")
+	threads := flag.Int("threads", 5, "amount of threads to use")
 	flag.Parse()
 	s := dependencies.RequestingService(*totalImages)
-	if errorList := s.GetImageUrls(); len(errorList.List) > 0 {
+	if errorList := s.GetImageUrls(*threads); len(errorList.List) > 0 {
 		logger.GenerateErrorReport(errorList)
 		fmt.Println("There have been errors. Check logs/error_report.txt for details")
 	}
