@@ -56,14 +56,14 @@ func NewService(
 	}
 }
 
-func (s Service) GetImageUrls(maxThreads int) (errorList apierror.ErrorList) {
+func (s Service) GetImageURLs(maxThreads int) (errorList apierror.ErrorList) {
 	if err := s.fileService.CreateDir(ResultsDir); err != nil {
 		errorList.List = []apierror.ApiError{wrapErr(err)}
 		return errorList
 	}
 
 	ch := make(chan error, s.totalImages)
-	currentThreads := 0
+	guard := make(chan struct{}, maxThreads)
 	currentPage := 0
 	var wg sync.WaitGroup
 	for s.queue.head != nil {
@@ -78,19 +78,14 @@ func (s Service) GetImageUrls(maxThreads int) (errorList apierror.ErrorList) {
 				s.addAction(newScrapeAction(page(s.baseUrl, currentPage), s.collector))
 			}
 		} else {
-			if currentThreads == maxThreads {
-				continue
-			}
-
-			currentThreads++
 			wg.Add(1)
+			guard <- struct{}{}
 			go func(action action) {
 				defer wg.Done()
 				if err := action.a(); err != nil {
 					ch <- err
 				}
-
-				currentThreads--
+				<-guard
 			}(s.queue.head.action)
 		}
 
@@ -102,7 +97,7 @@ func (s Service) GetImageUrls(maxThreads int) (errorList apierror.ErrorList) {
 	return generateErrorList(ch)
 }
 
-func (s Service) GetImageUrl(e *colly.HTMLElement) {
+func (s Service) GetImageURL(e *colly.HTMLElement) {
 	if *s.remainingImages < 1 {
 		return
 	}

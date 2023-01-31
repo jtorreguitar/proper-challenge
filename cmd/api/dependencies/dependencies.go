@@ -21,7 +21,7 @@ func RequestingService(totalImages int) interfaces.RequestingService {
 		ImageRepository(),
 	)
 
-	collector.OnHTML(requesting.Class, service.GetImageUrl)
+	collector.OnHTML(requesting.Class, service.GetImageURL)
 	return service
 }
 
