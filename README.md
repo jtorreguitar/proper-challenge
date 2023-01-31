@@ -2,9 +2,18 @@
 
 This project aims to fulfill the requirements layed out by the proper team for their take home challenge. The result is a web scraper that scrapes images from the website icanhas.cheezburger.com.
 
-## ARGUMENTS
+## RUNNING THE PROGRAM
 
 The program takes two optional arguments. The first one, `-amount`, determines the amount of images to be scraped. Each page of the website contains 16 images so every 16 images a new page will be fetched. The second argument, `-threads`, determines the amount of threads the program will use when downloading the images. The default value for the `-amount` argument is 10 while the default value for the `-threads` argument is 5. Amount must be a number greater than zero while threads must be a number between 1 and 5.
+
+An example run would be:
+
+```
+> go run cmd/api/main.go -amount 32 -threads 4
+```
+
+In order to run all unit tests one can run the command `go test ./...` in the root of the project
+
 
 ## PERFORMANCE
 
